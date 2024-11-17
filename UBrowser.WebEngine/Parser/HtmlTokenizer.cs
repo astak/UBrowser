@@ -8,7 +8,9 @@ public class HtmlTokenizer
   public List<Token> Tokenize(string html)
   {
     var tokens = new List<Token>();
-    var rawTokens = Regex.Matches(html, @"<!--.*?-->|<[^>]+>|[^<]+");
+    var openTags = new Stack<string>();
+    var rawTokens = Regex.Matches(html, @"<!--.*?-->|<[^>]*>|[^<]+");
+
     foreach (Match rawToken in rawTokens)
     {
       var token = rawToken.Value;
@@ -23,8 +25,16 @@ public class HtmlTokenizer
       else if (token.StartsWith("</"))
       {
         var endTagToken = ParseEndTag(token);
-        if (endTagToken != null)
+        if (endTagToken != null && openTags.Contains(endTagToken.Name))
         {
+          while (openTags.Count > 0 && openTags.Peek() != endTagToken.Name)
+          {
+            tokens.Add(new Token(TokenType.EndTag, openTags.Pop()));
+          }
+          if (openTags.Count > 0 && openTags.Peek() == endTagToken.Name)
+          {
+            openTags.Pop();
+          }
           tokens.Add(endTagToken);
         }
       }
@@ -34,6 +44,10 @@ public class HtmlTokenizer
         if (startTagToken != null)
         {
           tokens.Add(startTagToken);
+          if (startTagToken.Type == TokenType.StartTag)
+          {
+            openTags.Push(startTagToken.Name);
+          }
         }
       }
       else
@@ -45,6 +59,11 @@ public class HtmlTokenizer
           tokens.Add(new Token(TokenType.Text, decodedText));
         }
       }
+    }
+
+    while (openTags.Count > 0)
+    {
+      tokens.Add(new Token(TokenType.EndTag, openTags.Pop()));
     }
 
     return tokens;
