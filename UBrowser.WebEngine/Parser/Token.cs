@@ -25,8 +25,8 @@ public enum TokenType
 
 public static class TagNames
 {
-  public const string TagNameDiv = "div";
-  public const string TagNameSpan = "span";
-  public const string TagNameParagraph = "p";
-  public const string TagNameImage = "img";
+  public const string Div = "div";
+  public const string Span = "span";
+  public const string Paragraph = "p";
+  public const string Image = "img";
 }

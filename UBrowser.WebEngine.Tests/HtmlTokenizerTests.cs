@@ -10,7 +10,7 @@ public class HtmlTokenizerTests
   {
     //Arrange
     string inputHtml = "<div>";
-    var expectedToken = new Token(TokenType.StartTag, TagNames.TagNameDiv);
+    var expectedToken = new Token(TokenType.StartTag, TagNames.Div);
 
     var tokenizer = new HtmlTokenizer();
 
@@ -27,7 +27,7 @@ public class HtmlTokenizerTests
   {
     //Arrange
     string inputHtml = "</div>";
-    var expectedToken = new Token(TokenType.EndTag, TagNames.TagNameDiv);
+    var expectedToken = new Token(TokenType.EndTag, TagNames.Div);
 
     var tokenizer = new HtmlTokenizer();
 
@@ -60,9 +60,9 @@ public class HtmlTokenizerTests
     string inputHtml = "</div></span></p>";
     var expectedTokens = new List<Token>
     {
-      new Token(TokenType.EndTag, TagNames.TagNameDiv),
-      new Token(TokenType.EndTag, TagNames.TagNameSpan),
-      new Token(TokenType.EndTag, TagNames.TagNameParagraph),
+      new Token(TokenType.EndTag, TagNames.Div),
+      new Token(TokenType.EndTag, TagNames.Span),
+      new Token(TokenType.EndTag, TagNames.Paragraph),
     };
     var tokenizer = new HtmlTokenizer();
 
@@ -78,7 +78,7 @@ public class HtmlTokenizerTests
   {
     //Arrange
     string inputHtml = "</div >";
-    var expectedToken = new Token(TokenType.EndTag, TagNames.TagNameDiv);
+    var expectedToken = new Token(TokenType.EndTag, TagNames.Div);
     var tokenizer = new HtmlTokenizer();
 
     //Act
@@ -101,11 +101,11 @@ public class HtmlTokenizerTests
 
     //Assert
     result.Should().HaveCount(7);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.TagNameParagraph));
+    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Paragraph));
     result[1].Should().BeEquivalentTo(new Token(TokenType.Text, "Hello "));
-    result[2].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.TagNameSpan));
+    result[2].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Span));
     result[3].Should().BeEquivalentTo(new Token(TokenType.Text, "nice"));
-    result[4].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.TagNameSpan));
+    result[4].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Span));
     result[5].Should().BeEquivalentTo(new Token(TokenType.Text, " world"));
     result[6].Should().BeEquivalentTo(new Token(TokenType.EndTag, "p"));
   }
@@ -117,8 +117,8 @@ public class HtmlTokenizerTests
     string inputHtml = "<div></div>";
     var expectedTokens = new List<Token>
     {
-      new Token(TokenType.StartTag, TagNames.TagNameDiv),
-      new Token(TokenType.EndTag, TagNames.TagNameDiv),
+      new Token(TokenType.StartTag, TagNames.Div),
+      new Token(TokenType.EndTag, TagNames.Div),
     };
     var tokenizer = new HtmlTokenizer();
 
@@ -139,7 +139,7 @@ public class HtmlTokenizerTests
     {
       { "src", "image.jpg" }
     };
-    var expectedToken = new Token(TokenType.SelfClosingTag, TagNames.TagNameImage, attributes.ToArray());
+    var expectedToken = new Token(TokenType.SelfClosingTag, TagNames.Image, attributes.ToArray());
     var tokenizer = new HtmlTokenizer();
 
     //Act
@@ -176,11 +176,11 @@ public class HtmlTokenizerTests
 
     //Assert
     result.Should().HaveCount(5);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.TagNameDiv));
-    result[1].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.TagNameParagraph));
+    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div));
+    result[1].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Paragraph));
     result[2].Should().BeEquivalentTo(new Token(TokenType.Text, "Hello"));
-    result[3].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.TagNameParagraph));
-    result[4].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.TagNameDiv));
+    result[3].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Paragraph));
+    result[4].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Div));
   }
 
   [Fact]
@@ -195,7 +195,7 @@ public class HtmlTokenizerTests
 
     //Assert
     result.Should().HaveCount(1);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.TagNameDiv), options => options.Excluding(t => t.Attributes));
+    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div), options => options.Excluding(t => t.Attributes));
     result[0].Attributes.Should().ContainKey("id").WhoseValue.Should().Be("main");
   }
 
@@ -211,7 +211,7 @@ public class HtmlTokenizerTests
 
     //Assert
     result.Should().HaveCount(1);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.SelfClosingTag, TagNames.TagNameImage), options => options.Excluding(t => t.Attributes));
+    result[0].Should().BeEquivalentTo(new Token(TokenType.SelfClosingTag, TagNames.Image), options => options.Excluding(t => t.Attributes));
     result[0].Attributes.Should().ContainKey("src").WhoseValue.Should().Be("image.jpg");
     result[0].Attributes.Should().ContainKey("style").WhoseValue.Should().Be("width: 100px");
   }
@@ -228,7 +228,7 @@ public class HtmlTokenizerTests
 
     //Assert
     result.Should().HaveCount(1);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.TagNameDiv), options => options.Excluding(t => t.Attributes));
+    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div), options => options.Excluding(t => t.Attributes));
     result[0].Attributes.Should().BeEmpty();
   }
 
@@ -244,7 +244,7 @@ public class HtmlTokenizerTests
 
     //Assert
     result.Should().HaveCount(1);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.TagNameDiv), options => options.Excluding(t => t.Attributes));
+    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div), options => options.Excluding(t => t.Attributes));
     result[0].Attributes.Should().ContainKey("id").WhoseValue.Should().Be("main");
   }
 
@@ -260,9 +260,9 @@ public class HtmlTokenizerTests
 
     //Assert
     result.Should().HaveCount(3);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.TagNameDiv));
+    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div));
     result[1].Should().BeEquivalentTo(new Token(TokenType.Text, "Hello"));
-    result[2].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.TagNameDiv));
+    result[2].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Div));
   }
 
   [Fact]
@@ -277,9 +277,9 @@ public class HtmlTokenizerTests
 
     //Assert
     result.Should().HaveCount(3);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.TagNameDiv));
+    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div));
     result[1].Should().BeEquivalentTo(new Token(TokenType.Text, "   Hello World   "));
-    result[2].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.TagNameDiv));
+    result[2].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Div));
   }
 
   [Fact]
@@ -295,5 +295,39 @@ public class HtmlTokenizerTests
     //Assert
     result.Should().HaveCount(1);
     result[0].Should().BeEquivalentTo(new Token(TokenType.Comment, "This is a comment"));
+  }
+
+  [Fact]
+  public void Tokenizer_ShouldHandleCommentsInsideTags()
+  {
+    //Arrange
+    var inputHtml = "<div><!-- Comment inside --></div>";
+    var tokenizer = new HtmlTokenizer();
+
+    //Act
+    var result = tokenizer.Tokenize(inputHtml);
+
+    //Assert
+    result.Should().HaveCount(3);
+    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div));
+    result[1].Should().BeEquivalentTo(new Token(TokenType.Comment, "Comment inside"));
+    result[2].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Div));
+  }
+
+  [Fact]
+  public void Tokenizer_ShouldHandleSimpleSpecialCharacters()
+  {
+    //Arrange
+    var inputHtml = "<p>&lt;Hello&gt;</p>";
+    var tokenizer = new HtmlTokenizer();
+
+    //Act
+    var result = tokenizer.Tokenize(inputHtml);
+
+    //Assert
+    result.Should().HaveCount(3);
+    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Paragraph));
+    result[1].Should().BeEquivalentTo(new Token(TokenType.Text, "<Hello>"));
+    result[2].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Paragraph));
   }
 }

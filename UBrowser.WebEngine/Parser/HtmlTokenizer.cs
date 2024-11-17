@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Net;
+using System.Text.RegularExpressions;
 
 namespace UBrowser.WebEngine.Parser;
 
@@ -40,7 +41,8 @@ public class HtmlTokenizer
         var trimmedText = token.Trim();
         if (!string.IsNullOrEmpty(trimmedText))
         {
-          tokens.Add(new Token(TokenType.Text, token));
+          var decodedText = WebUtility.HtmlDecode(token);
+          tokens.Add(new Token(TokenType.Text, decodedText));
         }
       }
     }
