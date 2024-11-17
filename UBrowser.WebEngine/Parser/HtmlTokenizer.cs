@@ -78,24 +78,83 @@ public class HtmlTokenizer
   private KeyValuePair<string, string>[] ParseAttributes(string attributesPart)
   {
     var attributes = new Dictionary<string, string>();
-    if (string.IsNullOrWhiteSpace(attributesPart))
-      return attributes.ToArray();
+    var index = 0;
 
-    var attributePattern = @"(?<name>[a-zA-Z0-9\-]+)\s*=\s*""(?<value>[^""]*)""";
-    var matches = Regex.Matches(attributesPart, attributePattern);
-
-    foreach (Match match in matches)
+    while (index < attributesPart.Length)
     {
-      var name = match.Groups["name"].Value;
-      var value = match.Groups["value"].Value;
+      SkipWhitespace(ref index, attributesPart);
 
-      if (!string.IsNullOrWhiteSpace(name))
-      {
-        attributes[name] = value;
-      }
+      var name = ExtractAttributeName(ref index, attributesPart);
+      if (string.IsNullOrEmpty(name)) break;
+
+      var value = ExtractAttributeValue(ref index, attributesPart);
+      if (string.IsNullOrEmpty(value)) continue;
+
+      attributes[name] = value;
     }
 
     return attributes.ToArray();
+  }
+
+  private void SkipWhitespace(ref int index, string input)
+  {
+    while (index < input.Length && char.IsWhiteSpace(input[index]))
+      index++;
+  }
+
+  private string ExtractAttributeName(ref int index, string input)
+  {
+    var nameStart = index;
+
+    while (index < input.Length && !char.IsWhiteSpace(input[index]) && input[index] != '=')
+      index++;
+
+    return input.Substring(nameStart, index - nameStart);
+  }
+
+  private string ExtractQuotedValue(ref int index, string input, char quoteChar)
+  {
+    var valueStart = ++index;
+    index = input.IndexOf(quoteChar, index);
+    if (index == -1)
+      throw new FormatException("Unmatched quite in attribute value");
+    string value = input.Substring(valueStart, index - valueStart);
+    index++;
+    return value;
+  }
+
+  private string ExtractUnquotedValue(ref int index, string input)
+  {
+    var valueStart = index;
+
+    while (index < input.Length && !char.IsWhiteSpace(input[index]) && input[index] != '>')
+      index++;
+
+    return input.Substring(valueStart, index - valueStart);
+  }
+
+  private string? ExtractAttributeValue(ref int index, string input)
+  {
+    SkipWhitespace(ref index, input);
+
+    if (index >= input.Length || input[index] != '=')
+      return null;
+
+    index++;
+    SkipWhitespace(ref index, input);
+
+    if (index >= input.Length)
+      return null;
+
+    var quoteChar = input[index];
+    if (quoteChar == '"' || quoteChar == '\'')
+    {
+      return ExtractQuotedValue(ref index, input, quoteChar);
+    }
+    else
+    {
+      return ExtractUnquotedValue(ref index, input);
+    }
   }
 
   internal Token GetNextToken()
