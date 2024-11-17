@@ -5,38 +5,74 @@ namespace UBrowser.WebEngine.Parser;
 
 public class HtmlTokenizer
 {
-  public List<Token>Tokenize(string html)
+  public List<Token> Tokenize(string html)
   {
     var tokens = new List<Token>();
-    var closeTagPattern = @"<(?<isClose>/)?(?<tag>[a-zA-Z0-9]+)(?<attributes>[^>]*?)(?<isSelfClosing>/)?>";
-    var match = Regex.Match(html, closeTagPattern);
-
-    while (match.Success)
+    var rawTokens = Regex.Matches(html, @"<[^>]+>|[^<]+");
+    foreach (Match rawToken in rawTokens)
     {
-      var isClose = match.Groups["isClose"].Success;
-      var isSelfClosing = match.Groups["isSelfClosing"].Success;
-      var name = match.Groups["tag"].Value;
-      var attributesPart = match.Groups["attributes"].Value.Trim();
-
-      if (!string.IsNullOrWhiteSpace(name))
+      var token = rawToken.Value;
+      if (token.StartsWith("</"))
       {
-        if (isClose)
+        var endTagToken = ParseEndTag(token);
+        if (endTagToken != null)
         {
-          tokens.Add(new Token(TokenType.EndTag, name));
-        }
-        else if (isSelfClosing)
-        {
-          tokens.Add(new Token(TokenType.SelfClosingTag, name, ParseAttributes(attributesPart)));
-        }
-        else
-        {
-          tokens.Add(new Token(TokenType.StartTag, name, ParseAttributes(attributesPart)));
+          tokens.Add(endTagToken);
         }
       }
-      match = match.NextMatch();
+      else if (token.StartsWith("<"))
+      {
+        var startTagToken = ParseStartOrSelfClosingTag(token);
+        if (startTagToken != null)
+        {
+          tokens.Add(startTagToken);
+        }
+      }
+      else
+      {
+        var trimmedText = token.Trim();
+        if (!string.IsNullOrEmpty(trimmedText))
+        {
+          tokens.Add(new Token(TokenType.Text, token));
+        }
+      }
     }
 
     return tokens;
+  }
+
+  private Token? ParseStartOrSelfClosingTag(string rawToken)
+  {
+    var pattern = @"<(?<tag>[a-zA-Z0-9]+)(?<attributes>[^>]*?)(?<isSelfClosing>/)?>";
+    var match = Regex.Match(rawToken, pattern);
+
+    if (!match.Success)
+      return null;
+
+    var isSelfClosing = match.Groups["isSelfClosing"].Success;
+    var tagName = match.Groups["tag"].Value;
+    var attributesPart = match.Groups["attributes"].Value.Trim();
+
+    if (isSelfClosing)
+    {
+      return new Token(TokenType.SelfClosingTag, tagName, ParseAttributes(attributesPart));
+    }
+    else
+    {
+      return new Token(TokenType.StartTag, tagName, ParseAttributes(attributesPart));
+    }
+  }
+
+  private Token? ParseEndTag(string rawToken)
+  {
+    var closeTagPattern = @"^<\/(?<tag>[a-zA-Z0-9]+)\s*>$";
+    var match = Regex.Match(rawToken, closeTagPattern);
+
+    if (!match.Success)
+      return null;
+
+    var tagName = match.Groups["tag"].Value;
+    return new Token(TokenType.EndTag, tagName);
   }
 
   private KeyValuePair<string, string>[] ParseAttributes(string attributesPart)
