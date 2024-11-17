@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35506.116 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UBrowser.WebEngine", "UBrowser.WebEngine\UBrowser.WebEngine.csproj", "{80DFD6D1-1F82-43F9-883C-800CEAC4DF2D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{E7916904-04F8-45E8-93A2-2FE2E98214EF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UBrowser.WebEngine.Tests", "UBrowser.WebEngine.Tests\UBrowser.WebEngine.Tests.csproj", "{8CABEBFC-A162-487C-853D-EEDFC5ED4CCD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{80DFD6D1-1F82-43F9-883C-800CEAC4DF2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80DFD6D1-1F82-43F9-883C-800CEAC4DF2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80DFD6D1-1F82-43F9-883C-800CEAC4DF2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80DFD6D1-1F82-43F9-883C-800CEAC4DF2D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CABEBFC-A162-487C-853D-EEDFC5ED4CCD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CABEBFC-A162-487C-853D-EEDFC5ED4CCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CABEBFC-A162-487C-853D-EEDFC5ED4CCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CABEBFC-A162-487C-853D-EEDFC5ED4CCD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8CABEBFC-A162-487C-853D-EEDFC5ED4CCD} = {E7916904-04F8-45E8-93A2-2FE2E98214EF}
+	EndGlobalSection
+EndGlobal
