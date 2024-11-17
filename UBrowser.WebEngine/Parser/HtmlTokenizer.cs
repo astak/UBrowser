@@ -1,5 +1,4 @@
-﻿
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace UBrowser.WebEngine.Parser;
 
@@ -8,11 +7,19 @@ public class HtmlTokenizer
   public List<Token> Tokenize(string html)
   {
     var tokens = new List<Token>();
-    var rawTokens = Regex.Matches(html, @"<[^>]+>|[^<]+");
+    var rawTokens = Regex.Matches(html, @"<!--.*?-->|<[^>]+>|[^<]+");
     foreach (Match rawToken in rawTokens)
     {
       var token = rawToken.Value;
-      if (token.StartsWith("</"))
+      if (token.StartsWith("<!--"))
+      {
+        var commentToken = ParseComment(token);
+        if (commentToken != null)
+        {
+          tokens.Add(commentToken);
+        }
+      }
+      else if (token.StartsWith("</"))
       {
         var endTagToken = ParseEndTag(token);
         if (endTagToken != null)
@@ -39,6 +46,18 @@ public class HtmlTokenizer
     }
 
     return tokens;
+  }
+
+  private Token? ParseComment(string rawToken)
+  {
+    var pattern = @"^<!--\s*(?<comment>.*?)\s*-->$";
+    var match = Regex.Match(rawToken, pattern);
+
+    if (!match.Success)
+      return null;
+
+    var commentContent = match.Groups["comment"].Value;
+    return new Token(TokenType.Comment, commentContent);
   }
 
   private Token? ParseStartOrSelfClosingTag(string rawToken)

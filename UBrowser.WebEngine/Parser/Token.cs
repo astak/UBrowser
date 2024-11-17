@@ -2,11 +2,6 @@
 
 public class Token
 {
-  public const string TagNameDiv = "div";
-  public const string TagNameSpan = "span";
-  public const string TagNameParagraph = "p";
-  public const string TagNameImage = "img";
-
   public Token(TokenType type, string name, params KeyValuePair<string, string>[] attributes)
   {
     Type = type;
@@ -26,4 +21,12 @@ public enum TokenType
   SelfClosingTag,
   Text,
   Comment,
+}
+
+public static class TagNames
+{
+  public const string TagNameDiv = "div";
+  public const string TagNameSpan = "span";
+  public const string TagNameParagraph = "p";
+  public const string TagNameImage = "img";
 }
