@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Text.RegularExpressions;
 
 namespace UBrowser.WebEngine.Parser;
 
@@ -9,58 +8,95 @@ public class HtmlTokenizer
   {
     var tokens = new List<Token>();
     var openTags = new Stack<string>();
-    var rawTokens = Regex.Matches(html, @"<!--.*?-->|<[^>]*>|[^<]+");
 
-    foreach (Match rawToken in rawTokens)
+    int i = 0;
+    while (i < html.Length)
     {
-      var token = rawToken.Value;
-      if (token.StartsWith("<!--"))
+      if (html[i] == '<')
       {
-        var commentToken = ParseComment(token);
-        if (commentToken != null)
+        // Определяем комментарий
+        if (i + 4 <= html.Length && html.Substring(i, 4) == "<!--")
         {
-          tokens.Add(commentToken);
+          int commentEnd = html.IndexOf("-->", i + 4);
+          if (commentEnd != -1)
+          {
+            string commentContent = html.Substring(i, commentEnd + 3 - i);
+            var commentToken = ParseComment(commentContent);
+            if (commentToken != null)
+            {
+              tokens.Add(commentToken);
+            }
+            i = commentEnd + 3;
+            continue;
+          }
         }
-      }
-      else if (token.StartsWith("</"))
-      {
-        var endTagToken = ParseEndTag(token);
-        if (endTagToken != null && openTags.Contains(endTagToken.Name))
+
+        // Определяем закрывающий тег
+        if (i + 2 <= html.Length && html[i + 1] == '/')
         {
-          while (openTags.Count > 0 && openTags.Peek() != endTagToken.Name)
+          int tagEnd = html.IndexOf('>', i + 2);
+          if (tagEnd != -1)
           {
-            tokens.Add(new Token(TokenType.EndTag, openTags.Pop()));
+            string endTagContent = html.Substring(i, tagEnd + 1 - i);
+            var endTagToken = ParseEndTag(endTagContent);
+            if (endTagToken != null)
+            {
+              // Проверяем, есть ли соответствующий открывающий тэг
+              if (openTags.Contains(endTagToken.Name))
+              {
+                // Закрываем открытые теги, если нужно
+                while (openTags.Count > 0 && openTags.Peek() != endTagToken.Name)
+                {
+                  tokens.Add(new Token(TokenType.EndTag, openTags.Pop()));
+                }
+                if (openTags.Count > 0 && openTags.Peek() == endTagToken.Name)
+                {
+                  openTags.Pop();
+                }
+                tokens.Add(endTagToken);
+              }
+              // Иначе пропускаем закрывающий тэг
+            }
+            i = tagEnd + 1;
+            continue;
           }
-          if (openTags.Count > 0 && openTags.Peek() == endTagToken.Name)
-          {
-            openTags.Pop();
-          }
-          tokens.Add(endTagToken);
         }
-      }
-      else if (token.StartsWith("<"))
-      {
-        var startTagToken = ParseStartOrSelfClosingTag(token);
-        if (startTagToken != null)
+
+        // Определяем открывающий или самозакрывающийся тег
+        int tagEndIndex = html.IndexOf('>', i + 1);
+        if (tagEndIndex != -1)
         {
-          tokens.Add(startTagToken);
-          if (startTagToken.Type == TokenType.StartTag)
+          string tagContent = html.Substring(i, tagEndIndex + 1 - i);
+          var tagToken = ParseStartOrSelfClosingTag(tagContent);
+          if (tagToken != null)
           {
-            openTags.Push(startTagToken.Name);
+            tokens.Add(tagToken);
+            if (tagToken.Type == TokenType.StartTag)
+            {
+              openTags.Push(tagToken.Name);
+            }
           }
+          i = tagEndIndex + 1;
+          continue;
         }
       }
       else
       {
-        var trimmedText = token.Trim();
-        if (!string.IsNullOrEmpty(trimmedText))
+        // Определяем текст
+        int nextTagIndex = html.IndexOf('<', i);
+        if (nextTagIndex == -1) nextTagIndex = html.Length;
+
+        string textContent = html.Substring(i, nextTagIndex - i);
+        if (!string.IsNullOrEmpty(textContent.Trim()))
         {
-          var decodedText = WebUtility.HtmlDecode(token);
+          string decodedText = WebUtility.HtmlDecode(textContent);
           tokens.Add(new Token(TokenType.Text, decodedText));
         }
+        i = nextTagIndex;
       }
     }
 
+    // Закрываем оставшиеся открытые теги
     while (openTags.Count > 0)
     {
       tokens.Add(new Token(TokenType.EndTag, openTags.Pop()));
@@ -71,48 +107,65 @@ public class HtmlTokenizer
 
   private Token? ParseComment(string rawToken)
   {
-    var pattern = @"^<!--\s*(?<comment>.*?)\s*-->$";
-    var match = Regex.Match(rawToken, pattern);
-
-    if (!match.Success)
+    // Убедимся, что строка начинается с `<!--` и заканчивается на `-->`
+    if (!rawToken.StartsWith("<!--") || !rawToken.EndsWith("-->"))
       return null;
 
-    var commentContent = match.Groups["comment"].Value;
+    // Убираем префикс и суффикс комментария
+    var commentContent = rawToken.Substring(4, rawToken.Length - 7).Trim();
+
     return new Token(TokenType.Comment, commentContent);
   }
 
   private Token? ParseStartOrSelfClosingTag(string rawToken)
   {
-    var pattern = @"<(?<tag>[a-zA-Z0-9]+)(?<attributes>[^>]*?)(?<isSelfClosing>/)?>";
-    var match = Regex.Match(rawToken, pattern);
+    // Убираем угловые скобки
+    var trimmed = rawToken.Trim('<', '>').Trim();
+    if (string.IsNullOrEmpty(trimmed)) return null;
 
-    if (!match.Success)
-      return null;
-
-    var isSelfClosing = match.Groups["isSelfClosing"].Success;
-    var tagName = match.Groups["tag"].Value;
-    var attributesPart = match.Groups["attributes"].Value.Trim();
-
+    // Проверяем, является ли тег самозакрывающимся
+    var isSelfClosing = trimmed.EndsWith("/");
     if (isSelfClosing)
     {
-      return new Token(TokenType.SelfClosingTag, tagName, ParseAttributes(attributesPart));
+      trimmed = trimmed.TrimEnd('/');
     }
-    else
-    {
-      return new Token(TokenType.StartTag, tagName, ParseAttributes(attributesPart));
-    }
+
+    // Отделяем имя тега от атрибутов
+    var spaceIndex = trimmed.IndexOf(' ');
+    var tagName = spaceIndex >= 0 ? trimmed.Substring(0, spaceIndex) : trimmed;
+    var attributesPart = spaceIndex >= 0 ? trimmed.Substring(spaceIndex + 1) : string.Empty;
+
+    // Возвращаем соответствующий токен
+    return isSelfClosing
+        ? new Token(TokenType.SelfClosingTag, tagName, ParseAttributes(attributesPart))
+        : new Token(TokenType.StartTag, tagName, ParseAttributes(attributesPart));
   }
 
   private Token? ParseEndTag(string rawToken)
   {
-    var closeTagPattern = @"^<\/(?<tag>[a-zA-Z0-9]+)\s*>$";
-    var match = Regex.Match(rawToken, closeTagPattern);
-
-    if (!match.Success)
+    // Убедимся, что строка начинается с `</` и заканчивается на `>`
+    if (!rawToken.StartsWith("</") || !rawToken.EndsWith(">"))
       return null;
 
-    var tagName = match.Groups["tag"].Value;
+    // Убираем префикс `</` и суффикс `>`
+    var tagName = rawToken.Substring(2, rawToken.Length - 3).Trim();
+
+    // Проверяем, содержит ли тег только допустимые символы
+    if (string.IsNullOrEmpty(tagName) || !IsValidTagName(tagName))
+      return null;
+
     return new Token(TokenType.EndTag, tagName);
+  }
+
+  // Метод для проверки валидности имени тега
+  private bool IsValidTagName(string tagName)
+  {
+    foreach (var c in tagName)
+    {
+      if (!char.IsLetterOrDigit(c))
+        return false;
+    }
+    return true;
   }
 
   private KeyValuePair<string, string>[] ParseAttributes(string attributesPart)

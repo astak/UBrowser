@@ -1,4 +1,6 @@
 using FluentAssertions;
+using System.Diagnostics;
+using System.Text;
 using UBrowser.WebEngine.Parser;
 
 namespace UBrowser.WebEngine.Tests;
@@ -358,5 +360,26 @@ public class HtmlTokenizerTests
 
     //Assert
     result.Should().BeEmpty();
+  }
+
+  [Fact]
+  public void Tokenizer_ShouldHandleLargeHTMLDocument()
+  {
+    //Arrange
+    var builder = new StringBuilder();
+    for (var i = 0; i < 10_000; i++)
+    {
+      builder.AppendLine("<div><p>Repeated text</p></div>");
+    }
+    var tokenizer = new HtmlTokenizer();
+
+    //Act
+    var inputHtml = builder.ToString();
+    var sw = Stopwatch.StartNew();
+    _ = tokenizer.Tokenize(inputHtml);
+    sw.Stop();
+
+    //Assert
+    sw.ElapsedMilliseconds.Should().BeLessThan(100);
   }
 }
