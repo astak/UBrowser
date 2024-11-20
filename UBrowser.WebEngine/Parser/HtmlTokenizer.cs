@@ -4,168 +4,108 @@ namespace UBrowser.WebEngine.Parser;
 
 public class HtmlTokenizer
 {
-  public List<Token> Tokenize(string html)
+  private string _html = string.Empty;
+  private int _currentIndex;
+
+  public void Reset(string html)
   {
-    var tokens = new List<Token>();
-    var openTags = new Stack<string>();
-
-    int i = 0;
-    while (i < html.Length)
-    {
-      if (html[i] == '<')
-      {
-        // Определяем комментарий
-        if (i + 4 <= html.Length && html.Substring(i, 4) == "<!--")
-        {
-          int commentEnd = html.IndexOf("-->", i + 4);
-          if (commentEnd != -1)
-          {
-            string commentContent = html.Substring(i, commentEnd + 3 - i);
-            var commentToken = ParseComment(commentContent);
-            if (commentToken != null)
-            {
-              tokens.Add(commentToken);
-            }
-            i = commentEnd + 3;
-            continue;
-          }
-        }
-
-        // Определяем закрывающий тег
-        if (i + 2 <= html.Length && html[i + 1] == '/')
-        {
-          int tagEnd = html.IndexOf('>', i + 2);
-          if (tagEnd != -1)
-          {
-            string endTagContent = html.Substring(i, tagEnd + 1 - i);
-            var endTagToken = ParseEndTag(endTagContent);
-            if (endTagToken != null)
-            {
-              // Проверяем, есть ли соответствующий открывающий тэг
-              if (openTags.Contains(endTagToken.Name))
-              {
-                // Закрываем открытые теги, если нужно
-                while (openTags.Count > 0 && openTags.Peek() != endTagToken.Name)
-                {
-                  tokens.Add(new Token(TokenType.EndTag, openTags.Pop()));
-                }
-                if (openTags.Count > 0 && openTags.Peek() == endTagToken.Name)
-                {
-                  openTags.Pop();
-                }
-                tokens.Add(endTagToken);
-              }
-              // Иначе пропускаем закрывающий тэг
-            }
-            i = tagEnd + 1;
-            continue;
-          }
-        }
-
-        // Определяем открывающий или самозакрывающийся тег
-        int tagEndIndex = html.IndexOf('>', i + 1);
-        if (tagEndIndex != -1)
-        {
-          string tagContent = html.Substring(i, tagEndIndex + 1 - i);
-          var tagToken = ParseStartOrSelfClosingTag(tagContent);
-          if (tagToken != null)
-          {
-            tokens.Add(tagToken);
-            if (tagToken.Type == TokenType.StartTag)
-            {
-              openTags.Push(tagToken.Name);
-            }
-          }
-          i = tagEndIndex + 1;
-          continue;
-        }
-      }
-      else
-      {
-        // Определяем текст
-        int nextTagIndex = html.IndexOf('<', i);
-        if (nextTagIndex == -1) nextTagIndex = html.Length;
-
-        string textContent = html.Substring(i, nextTagIndex - i);
-        if (!string.IsNullOrEmpty(textContent.Trim()))
-        {
-          string decodedText = WebUtility.HtmlDecode(textContent);
-          tokens.Add(new Token(TokenType.Text, decodedText));
-        }
-        i = nextTagIndex;
-      }
-    }
-
-    // Закрываем оставшиеся открытые теги
-    while (openTags.Count > 0)
-    {
-      tokens.Add(new Token(TokenType.EndTag, openTags.Pop()));
-    }
-
-    return tokens;
+    _html = html;
+    _currentIndex = 0;
   }
 
-  private Token? ParseComment(string rawToken)
+  public Token? GetNextToken()
   {
-    // Убедимся, что строка начинается с `<!--` и заканчивается на `-->`
-    if (!rawToken.StartsWith("<!--") || !rawToken.EndsWith("-->"))
+    if (_currentIndex >= _html.Length)
       return null;
 
-    // Убираем префикс и суффикс комментария
-    var commentContent = rawToken.Substring(4, rawToken.Length - 7).Trim();
-
-    return new Token(TokenType.Comment, commentContent);
-  }
-
-  private Token? ParseStartOrSelfClosingTag(string rawToken)
-  {
-    // Убираем угловые скобки
-    var trimmed = rawToken.Trim('<', '>').Trim();
-    if (string.IsNullOrEmpty(trimmed)) return null;
-
-    // Проверяем, является ли тег самозакрывающимся
-    var isSelfClosing = trimmed.EndsWith("/");
-    if (isSelfClosing)
+    if (_html[_currentIndex] == '<')
     {
-      trimmed = trimmed.TrimEnd('/');
+      if (_currentIndex + 4 <= _html.Length && _html.Substring(_currentIndex, 4) == "<!--")
+        return ParseComment();
+
+      if (_currentIndex + 2 <= _html.Length && _html[_currentIndex + 1] == '/')
+        return ParseEndTag();
+
+      return ParseStartOrSelfClosingTag();
     }
 
-    // Отделяем имя тега от атрибутов
-    var spaceIndex = trimmed.IndexOf(' ');
-    var tagName = spaceIndex >= 0 ? trimmed.Substring(0, spaceIndex) : trimmed;
-    var attributesPart = spaceIndex >= 0 ? trimmed.Substring(spaceIndex + 1) : string.Empty;
-
-    // Возвращаем соответствующий токен
-    return isSelfClosing
-        ? new Token(TokenType.SelfClosingTag, tagName, ParseAttributes(attributesPart))
-        : new Token(TokenType.StartTag, tagName, ParseAttributes(attributesPart));
+    return ParseTextNode();
   }
 
-  private Token? ParseEndTag(string rawToken)
+  private Token? ParseComment()
   {
-    // Убедимся, что строка начинается с `</` и заканчивается на `>`
-    if (!rawToken.StartsWith("</") || !rawToken.EndsWith(">"))
-      return null;
-
-    // Убираем префикс `</` и суффикс `>`
-    var tagName = rawToken.Substring(2, rawToken.Length - 3).Trim();
-
-    // Проверяем, содержит ли тег только допустимые символы
-    if (string.IsNullOrEmpty(tagName) || !IsValidTagName(tagName))
-      return null;
-
-    return new Token(TokenType.EndTag, tagName);
-  }
-
-  // Метод для проверки валидности имени тега
-  private bool IsValidTagName(string tagName)
-  {
-    foreach (var c in tagName)
+    int commentEnd = _html.IndexOf("-->", _currentIndex + 4);
+    if (commentEnd != -1)
     {
-      if (!char.IsLetterOrDigit(c))
-        return false;
+      string commentContent = _html.Substring(_currentIndex, commentEnd + 3 - _currentIndex);
+      _currentIndex = commentEnd + 3;
+      return new Token(TokenType.Comment, commentContent.Substring(4, commentContent.Length - 7).Trim());
     }
-    return true;
+
+    // Пропускаем остаток строки, если комментарий не закрыт
+    _currentIndex = _html.Length;
+    return null;
+  }
+
+  private Token? ParseStartOrSelfClosingTag()
+  {
+    int tagEndIndex = _html.IndexOf('>', _currentIndex + 1);
+    if (tagEndIndex != -1)
+    {
+      string tagContent = _html.Substring(_currentIndex, tagEndIndex + 1 - _currentIndex);
+      _currentIndex = tagEndIndex + 1;
+
+      var trimmed = tagContent.Trim('<', '>').Trim();
+      if (string.IsNullOrEmpty(trimmed)) return null;
+
+      var isSelfClosing = trimmed.EndsWith("/");
+      if (isSelfClosing)
+        trimmed = trimmed.TrimEnd('/');
+
+      var spaceIndex = trimmed.IndexOf(' ');
+      var tagName = spaceIndex >= 0 ? trimmed.Substring(0, spaceIndex) : trimmed;
+      if (string.IsNullOrEmpty(tagName)) return null;
+
+      var attributesPart = spaceIndex >= 0 ? trimmed.Substring(spaceIndex + 1) : string.Empty;
+
+      return isSelfClosing
+          ? new Token(TokenType.SelfClosingTag, tagName, ParseAttributes(attributesPart))
+          : new Token(TokenType.StartTag, tagName, ParseAttributes(attributesPart));
+    }
+
+    // Пропускаем остаток строки, если тег не закрыт
+    _currentIndex = _html.Length;
+    return null;
+  }
+
+  private Token? ParseEndTag()
+  {
+    int tagEnd = _html.IndexOf('>', _currentIndex + 2);
+    if (tagEnd != -1)
+    {
+      string endTagContent = _html.Substring(_currentIndex, tagEnd + 1 - _currentIndex);
+      _currentIndex = tagEnd + 1;
+
+      var tagName = endTagContent.Substring(2, endTagContent.Length - 3).Trim();
+      return string.IsNullOrEmpty(tagName) ? null : new Token(TokenType.EndTag, tagName);
+    }
+
+    // Пропускаем остаток строки, если тег не закрыт
+    _currentIndex = _html.Length;
+    return null;
+  }
+
+  private Token? ParseTextNode()
+  {
+    int nextTagIndex = _html.IndexOf('<', _currentIndex);
+    if (nextTagIndex == -1) nextTagIndex = _html.Length;
+
+    string textContent = _html.Substring(_currentIndex, nextTagIndex - _currentIndex);
+    _currentIndex = nextTagIndex;
+
+    return !string.IsNullOrWhiteSpace(textContent)
+        ? new Token(TokenType.Text, WebUtility.HtmlDecode(textContent))
+        : null;
   }
 
   private KeyValuePair<string, string>[] ParseAttributes(string attributesPart)
@@ -205,27 +145,6 @@ public class HtmlTokenizer
     return input.Substring(nameStart, index - nameStart);
   }
 
-  private string ExtractQuotedValue(ref int index, string input, char quoteChar)
-  {
-    var valueStart = ++index;
-    index = input.IndexOf(quoteChar, index);
-    if (index == -1)
-      throw new FormatException("Unmatched quite in attribute value");
-    string value = input.Substring(valueStart, index - valueStart);
-    index++;
-    return value;
-  }
-
-  private string ExtractUnquotedValue(ref int index, string input)
-  {
-    var valueStart = index;
-
-    while (index < input.Length && !char.IsWhiteSpace(input[index]) && input[index] != '>')
-      index++;
-
-    return input.Substring(valueStart, index - valueStart);
-  }
-
   private string? ExtractAttributeValue(ref int index, string input)
   {
     SkipWhitespace(ref index, input);
@@ -242,21 +161,22 @@ public class HtmlTokenizer
     var quoteChar = input[index];
     if (quoteChar == '"' || quoteChar == '\'')
     {
-      return ExtractQuotedValue(ref index, input, quoteChar);
+      var valueStart = ++index;
+      index = input.IndexOf(quoteChar, index);
+      if (index == -1) throw new FormatException("Unmatched quote in attribute value");
+
+      var value = input.Substring(valueStart, index - valueStart);
+      index++;
+      return value;
     }
     else
     {
-      return ExtractUnquotedValue(ref index, input);
+      var valueStart = index;
+
+      while (index < input.Length && !char.IsWhiteSpace(input[index]) && input[index] != '>')
+        index++;
+
+      return input.Substring(valueStart, index - valueStart);
     }
-  }
-
-  internal Token GetNextToken()
-  {
-    throw new NotImplementedException();
-  }
-
-  internal void Reset(string html)
-  {
-    throw new NotImplementedException();
   }
 }

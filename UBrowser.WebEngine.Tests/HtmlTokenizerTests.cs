@@ -11,60 +11,65 @@ public class HtmlTokenizerTests
   public void Tokenize_ShouldReturnStartTagToken_ForSimpleOpenTag()
   {
     //Arrange
-    string inputHtml = "<div>";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<div>");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var token = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(2);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div));
-    result[1].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Div));
+    token.Should().NotBeNull();
+    token.Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div));
   }
 
   [Fact]
   public void Tokenize_ShouldIgnoreInvalidCloseTag()
   {
     //Arrange
-    string inputHtml = "</>";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("</>");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().BeEmpty();
+    result.Should().BeNull();
   }
 
   [Fact]
   public void Tokenizer_ShouldHandleCloseTagWithWhiteSpace()
   {
     //Arrange
-    string inputHtml = "<div></div >";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<div></div >");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result0 = tokenizer.GetNextToken();
+    var result1 = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(2);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div));
-    result[1].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Div));
+    result0.Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div));
+    result1.Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Div));
   }
 
   [Fact]
   public void Tokenizer_ShouldPreserveTextNodesBetweenTags()
   {
     //Arrange
-    string inputHtml = "<p>Hello <span>nice</span> world</p>";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<p>Hello <span>nice</span> world</p>");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = new Token?[7];
+    result[0] = tokenizer.GetNextToken();
+    result[1] = tokenizer.GetNextToken();
+    result[2] = tokenizer.GetNextToken();
+    result[3] = tokenizer.GetNextToken();
+    result[4] = tokenizer.GetNextToken();
+    result[5] = tokenizer.GetNextToken();
+    result[6] = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(7);
     result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Paragraph));
     result[1].Should().BeEquivalentTo(new Token(TokenType.Text, "Hello "));
     result[2].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Span));
@@ -78,19 +83,20 @@ public class HtmlTokenizerTests
   public void Tokenize_ShouldHandleStartAndEndTags()
   {
     //Arrange
-    string inputHtml = "<div></div>";
     var expectedTokens = new List<Token>
     {
       new Token(TokenType.StartTag, TagNames.Div),
       new Token(TokenType.EndTag, TagNames.Div),
     };
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<div></div>");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = new Token?[2];
+    result[0] = tokenizer.GetNextToken();
+    result[1] = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(2);
     result.Should().BeEquivalentTo(expectedTokens);
   }
 
@@ -98,48 +104,51 @@ public class HtmlTokenizerTests
   public void Tokenize_ShouldReturnSelfClosingTagToken_WithAttributes()
   {
     //Arrange
-    string inputHtml = "<img src=\"image.jpg\" />";
     var attributes = new Dictionary<string, string>
     {
       { "src", "image.jpg" }
     };
     var expectedToken = new Token(TokenType.SelfClosingTag, TagNames.Image, attributes.ToArray());
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<img src=\"image.jpg\" />");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(1);
-    result.First().Should().BeEquivalentTo(expectedToken);
+    result.Should().BeEquivalentTo(expectedToken);
   }
 
   [Fact]
   public void Tokenizer_ShouldIgnoreEmptyTextNodes()
   {
     //Arrange
-    string inputHtml = "    ";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("    ");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().BeEmpty();
+    result.Should().BeNull();
   }
 
   [Fact]
   public void Tokenizer_ShouldHandleNestedTags()
   {
     //Arrange
-    string inputHtml = "<div><p>Hello</p></div>";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<div><p>Hello</p></div>");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = new Token?[5];
+    result[0] = tokenizer.GetNextToken();
+    result[1] = tokenizer.GetNextToken();
+    result[2] = tokenizer.GetNextToken();
+    result[3] = tokenizer.GetNextToken();
+    result[4] = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(5);
     result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div));
     result[1].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Paragraph));
     result[2].Should().BeEquivalentTo(new Token(TokenType.Text, "Hello"));
@@ -151,82 +160,77 @@ public class HtmlTokenizerTests
   public void Tokenizer_ShouldHandleTagWithOneAttribute()
   {
     //Arrange
-    string inputHtml = "<div id=\"main\">";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<div id=\"main\">");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(2);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div), options => options.Excluding(t => t.Attributes));
-    result[0].Attributes.Should().ContainKey("id").WhoseValue.Should().Be("main");
-    result[1].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Div));
+    result.Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div), options => options.Excluding(t => t.Attributes));
+    result!.Attributes.Should().ContainKey("id").WhoseValue.Should().Be("main");
   }
 
   [Fact]
   public void Tokenizer_ShouldHandleTagWithMultipleAttributes()
   {
     //Arrange
-    string inputHtml = "<img src=\"image.jpg\" style=\"width: 100px\" />";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<img src=\"image.jpg\" style=\"width: 100px\" />");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(1);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.SelfClosingTag, TagNames.Image), options => options.Excluding(t => t.Attributes));
-    result[0].Attributes.Should().ContainKey("src").WhoseValue.Should().Be("image.jpg");
-    result[0].Attributes.Should().ContainKey("style").WhoseValue.Should().Be("width: 100px");
+    result.Should().BeEquivalentTo(new Token(TokenType.SelfClosingTag, TagNames.Image), options => options.Excluding(t => t.Attributes));
+    result!.Attributes.Should().ContainKey("src").WhoseValue.Should().Be("image.jpg");
+    result.Attributes.Should().ContainKey("style").WhoseValue.Should().Be("width: 100px");
   }
 
   [Fact]
   public void Tokenizer_ShouldIgnoreAttributeWithoutValue()
   {
     //Arrange
-    var inputHtml = "<div id>";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<div id>");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(2);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div), options => options.Excluding(t => t.Attributes));
-    result[0].Attributes.Should().BeEmpty();
-    result[1].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Div));
+    result.Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div), options => options.Excluding(t => t.Attributes));
+    result!.Attributes.Should().BeEmpty();
   }
 
   [Fact]
   public void Tokenizer_ShouldHandleAttributeWithoutQuotes()
   {
     //Arrange
-    var inputHtml = "<div id=main>";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<div id=main>");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(2);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div), options => options.Excluding(t => t.Attributes));
-    result[0].Attributes.Should().ContainKey("id").WhoseValue.Should().Be("main");
-    result[1].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Div));
+    result.Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div), options => options.Excluding(t => t.Attributes));
+    result!.Attributes.Should().ContainKey("id").WhoseValue.Should().Be("main");
   }
 
   [Fact]
   public void Tokenizer_ShouldHandlePlainTextBetweenTags()
   {
     //Arrange
-    var inputHtml = "<div>Hello</div>";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<div>Hello</div>");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = new Token?[3];
+    result[0] = tokenizer.GetNextToken();
+    result[1] = tokenizer.GetNextToken();
+    result[2] = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(3);
     result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div));
     result[1].Should().BeEquivalentTo(new Token(TokenType.Text, "Hello"));
     result[2].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Div));
@@ -236,14 +240,16 @@ public class HtmlTokenizerTests
   public void Tokenizer_ShouldHandleTextWithSpaces()
   {
     //Arrange
-    string inputHtml = "<div>   Hello World   </div>";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<div>   Hello World   </div>");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = new Token?[3];
+    result[0]= tokenizer.GetNextToken();
+    result[1] = tokenizer.GetNextToken();
+    result[2] = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(3);
     result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div));
     result[1].Should().BeEquivalentTo(new Token(TokenType.Text, "   Hello World   "));
     result[2].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Div));
@@ -253,29 +259,30 @@ public class HtmlTokenizerTests
   public void Tokenizer_ShouldHandleSimpleComments()
   {
     //Arrange
-    var inputHtml = "<!-- This is a comment -->";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<!-- This is a comment -->");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(1);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.Comment, "This is a comment"));
+    result.Should().BeEquivalentTo(new Token(TokenType.Comment, "This is a comment"));
   }
 
   [Fact]
   public void Tokenizer_ShouldHandleCommentsInsideTags()
   {
     //Arrange
-    var inputHtml = "<div><!-- Comment inside --></div>";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<div><!-- Comment inside --></div>");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = new Token?[3];
+    result[0]= tokenizer.GetNextToken();
+    result[1] = tokenizer.GetNextToken();
+    result[2] = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(3);
     result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div));
     result[1].Should().BeEquivalentTo(new Token(TokenType.Comment, "Comment inside"));
     result[2].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Div));
@@ -285,14 +292,16 @@ public class HtmlTokenizerTests
   public void Tokenizer_ShouldHandleSimpleSpecialCharacters()
   {
     //Arrange
-    var inputHtml = "<p>&lt;Hello&gt;</p>";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<p>&lt;Hello&gt;</p>");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = new Token?[3];
+    result[0]= tokenizer.GetNextToken();
+    result[1] = tokenizer.GetNextToken();
+    result[2] = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(3);
     result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Paragraph));
     result[1].Should().BeEquivalentTo(new Token(TokenType.Text, "<Hello>"));
     result[2].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Paragraph));
@@ -302,64 +311,33 @@ public class HtmlTokenizerTests
   public void Tokenizer_ShouldHandleSeveralSpecialCharacters()
   {
     //Arrange
-    var inputHtml = "<p>&lt;&amp;&gt;</p>";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<p>&lt;&amp;&gt;</p>");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = new Token?[3];
+    result[0]= tokenizer.GetNextToken();
+    result[1] = tokenizer.GetNextToken();
+    result[2] = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().HaveCount(3);
     result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Paragraph));
     result[1].Should().BeEquivalentTo(new Token(TokenType.Text, "<&>"));
     result[2].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Paragraph));
   }
 
   [Fact]
-  public void Tokenizer_ShouldAutomaticallyRestoreUnclosedTags()
-  {
-    //Arrange
-    var inputHtml = "<div><p>Text</div>";
-    var tokenizer = new HtmlTokenizer();
-
-    //Act
-    var result = tokenizer.Tokenize(inputHtml);
-
-    //Assert
-    result.Should().HaveCount(5);
-    result[0].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Div));
-    result[1].Should().BeEquivalentTo(new Token(TokenType.StartTag, TagNames.Paragraph));
-    result[2].Should().BeEquivalentTo(new Token(TokenType.Text, "Text"));
-    result[3].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Paragraph));
-    result[4].Should().BeEquivalentTo(new Token(TokenType.EndTag, TagNames.Div));
-  }
-
-  [Fact]
-  public void Tokenizer_ShouldIgnoreClosingTagsWithoutOpeningOnes()
-  {
-    //Arrange
-    var inputHtml = "</div>";
-    var tokenizer = new HtmlTokenizer();
-
-    //Act
-    var result = tokenizer.Tokenize(inputHtml);
-
-    //Assert
-    result.Should().BeEmpty();
-  }
-
-  [Fact]
   public void Tokenizer_ShouldIgnoreTagWithoutName()
   {
     //Arrange
-    var inputHtml = "<>";
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("<>");
 
     //Act
-    var result = tokenizer.Tokenize(inputHtml);
+    var result = tokenizer.GetNextToken();
 
     //Assert
-    result.Should().BeEmpty();
+    result.Should().BeNull();
   }
 
   [Fact]
@@ -372,14 +350,47 @@ public class HtmlTokenizerTests
       builder.AppendLine("<div><p>Repeated text</p></div>");
     }
     var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset(builder.ToString());
 
     //Act
-    var inputHtml = builder.ToString();
+    var tokens = new List<Token>(10_000);
     var sw = Stopwatch.StartNew();
-    _ = tokenizer.Tokenize(inputHtml);
+    var token = tokenizer.GetNextToken();
+    while (token != null)
+    {
+      tokens.Add(token);
+      token = tokenizer.GetNextToken();
+    }
     sw.Stop();
 
     //Assert
     sw.ElapsedMilliseconds.Should().BeLessThan(100);
+  }
+
+  [Fact]
+  public void Tokenizer_ShouldHandleEmptyLine()
+  {
+    //Arrange
+    var tokenizer = new HtmlTokenizer();
+
+    //Act
+    var result = tokenizer.GetNextToken();
+
+    //Assert
+    result.Should().BeNull();
+  }
+
+  [Fact]
+  public void Tokenizer_ShouldHandleOnlyTextWithoutTags()
+  {
+    //Arrange
+    var tokenizer = new HtmlTokenizer();
+    tokenizer.Reset("Hello World");
+
+    //Act
+    var result = tokenizer.GetNextToken();
+
+    //Assert
+    result.Should().BeEquivalentTo(new Token(TokenType.Text, "Hello World"));
   }
 }
