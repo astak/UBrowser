@@ -1,31 +1,35 @@
 ﻿using UBrowser.WebEngine.DOM;
-using UBrowser.WebEngine.Parser;
 
-namespace UBrowser.WebEngine.HTMLParser;
+namespace UBrowser.WebEngine.Parser;
 
 public class HtmlParser
 {
-  private readonly HtmlTokenizer tokenizer = new HtmlTokenizer();
-  private DOMTree domTree = new DOMTree(); 
+  private readonly HtmlTokenizer _tokenizer = new HtmlTokenizer();
+  private DOMNode? _currentNode;
 
-  public DOMTree Parse(string html)
+  public DOMNode Parse(string html)
   {
-    tokenizer.Reset(html);
-    domTree = new DOMTree();
+    _tokenizer.Reset(html);
 
-    Token token;
-    while ((token = tokenizer.GetNextToken()) != null)
+    var domTree = new DOMNode(SpecialNodeNames.Root);
+    _currentNode = domTree;
+
+    Token? token;
+    while ((token = _tokenizer.GetNextToken()) != null)
     {
       switch (token.Type)
       {
         case TokenType.StartTag:
-          HandleStartTag(token.Name, token.Attributes);
+          HandleStartTag(token);
           break;
         case TokenType.EndTag:
-          HandleEndTag(token.Name);
+          HandleEndTag(token);
+          break;
+        case TokenType.SelfClosingTag:
+          HandleSelfClosingTag(token);
           break;
         case TokenType.Text:
-          HandleText(token.Attributes["data"]);
+          HandleText(token);
           break;
       }
     }
@@ -33,23 +37,42 @@ public class HtmlParser
     return domTree;
   }
 
-  private void HandleStartTag(string tagName, Dictionary<string, string> attributes)
+  private void HandleStartTag(Token token)
   {
-    var node = new DOMNode(tagName)
+    var elementNode = new DOMNode(token.Name)
     {
-      Attributes = attributes
+      Attributes = token.Attributes
     };
-    domTree.AppendChild(node);
+
+    _currentNode?.AddChild(elementNode);
+    _currentNode = elementNode;
   }
 
-  private void HandleEndTag(string tagName)
+  private void HandleEndTag(Token token)
   {
-    domTree.CloseCurrenNode();
+    if (_currentNode?.TagName == token.Name)
+    {
+      _currentNode = _currentNode.Parent ?? _currentNode;
+    }
   }
 
-  private void HandleText(string text)
+  private void HandleSelfClosingTag(Token token)
   {
-    var textNode = new DOMNode("#text") { InnerText = text };
-    domTree.AppendChild(textNode);
+    var selfClosingNode = new DOMNode(token.Name)
+    {
+      Attributes = token.Attributes
+    };
+
+    _currentNode?.AddChild(selfClosingNode);
+  }
+
+  private void HandleText(Token token)
+  {
+    var textNode = new DOMNode(SpecialNodeNames.Text)
+    {
+      InnerText = token.Name
+    };
+
+    _currentNode?.AddChild(textNode);
   }
 }

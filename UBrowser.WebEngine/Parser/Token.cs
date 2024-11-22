@@ -29,4 +29,5 @@ public static class TagNames
   public const string Span = "span";
   public const string Paragraph = "p";
   public const string Image = "img";
+  public const string Bold = "b";
 }

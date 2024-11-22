@@ -14,6 +14,18 @@ public class DOMNode
   public string? InnerText { get; set; }
   public Dictionary<string, string>? Attributes { get; init; }
 
+  public DOMNode Root
+  {
+    get
+    {
+      var current = this;
+      while (current.Parent != null){
+        current = current.Parent;
+      }
+      return current;
+    }
+  }
+
   public void AddChild(DOMNode child)
   {
     child.Parent = this;
@@ -25,4 +37,10 @@ public class DOMNode
     Children.Remove(child);
     child.Parent = null;
   }
+}
+
+public static class SpecialNodeNames
+{
+  public const string Root = "Document";
+  public const string Text = "#text";
 }
