@@ -14,7 +14,14 @@ public class DOMNode
   public List<DOMNode> Children { get; set; } = new List<DOMNode>();
   public CSSStyle Style { get; set; } = new CSSStyle();
   public string? InnerText { get; set; }
-  public Dictionary<string, string>? Attributes { get; init; }
+  private Dictionary<string, string>? _attributes;
+  public Dictionary<string, string> Attributes {
+    get => _attributes ??= new Dictionary<string, string>();
+    init
+    {
+      _attributes = value;
+    }
+  }
   public DOMNodeGeometry Geometry { get; set; } = new DOMNodeGeometry();
 
   public DOMNode Root
